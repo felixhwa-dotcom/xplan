@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>京火计划 & 星火计划 - 知识查询</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        .content-section { scroll-margin-top: 80px; transition: background-color 0.3s; }
+        
+        /* 高亮动画 */
+        @keyframes highlightPulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); border-color: #3b82f6; }
+            50% { box-shadow: 0 0 20px 4px rgba(59, 130, 246, 0.25); border-color: #2563eb; }
+            100% { box-shadow: none; border-color: transparent; }
+        }
+        .highlight-active {
+            animation: highlightPulse 2s ease-out;
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+            padding: 8px;
+            margin: -8px;
+        }
+
+        /* 搜索结果悬停效果 */
+        .search-result-item {
+            transition: all 0.15s ease;
+            cursor: pointer;
+        }
+        .search-result-item:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.18);
+            border-color: #60a5fa !important;
+        }
+
+        /* 匹配关键词高亮 */
+        mark {
+            background: linear-gradient(to bottom, transparent 50%, #fef08a 50%);
+            color: inherit;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- 定位提示 Toast -->
+    <div id="toast" class="fixed top-16 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-5 py-2 rounded-lg shadow-lg z-[100] opacity-0 pointer-events-none transition-opacity duration-300 text-sm flex items-center gap-2">
+        <svg class="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+        <span>已定位到目标位置</span>
+    </div>
+
+    <!-- 顶部导航 -->
+    <nav class="bg-white shadow-sm fixed w-full top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <h1 class="text-xl font-bold text-gray-900">营销计划查询</h1>
+            <div class="flex gap-4">
+                <a href="#jinghuo" class="text-gray-600 hover:text-blue-600 transition-colors">京火计划</a>
+                <a href="#xinghuo" class="text-gray-600 hover:text-green-600 transition-colors">星火计划</a>
+                <a href="#huohuo-help" class="text-gray-600 hover:text-purple-600 transition-colors">帮助中心</a>
+                <a href="#search" class="text-gray-600 hover:text-blue-600 transition-colors">🔍 搜索</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容 -->
+    <main class="max-w-6xl mx-auto px-4 pt-24 pb-12">
+
+        <!-- 搜索区域 -->
+        <section id="search" class="mb-12 content-section">
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-2xl font-bold mb-2">
+                    🔍 智能搜索
+                    <span class="text-sm font-normal text-blue-600 ml-2">点击结果 → 自动定位到对应内容</span>
+                </h2>
+                <p class="text-sm text-gray-500 mb-4">支持模糊匹配，输入任意关键词即可快速找到相关内容并跳转</p>
+                
+                <div class="flex gap-2">
+                    <input
+                        type="text"
+                        id="searchInput"
+                        placeholder="输入关键词，如：京火、星火、B站、淘宝、投流、开票、门槛、流程..."
+                        class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        onkeyup="if(event.key==='Enter') performSearch(); else if(event.key==='Backspace' || event.key==='Delete') performSearch();"
+                    >
+                    <button
+                        onclick="performSearch()"
+                        class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer font-medium"
+                    >
+                        搜索
+                    </button>
+                </div>
+                
+                <!-- 搜索统计 & 清除 -->
+                <div id="searchStats" class="hidden mt-3 flex items-center justify-between">
+                    <span class="text-sm text-gray-500"></span>
+                    <button onclick="clearSearch()" class="text-sm text-red-500 hover:text-red-700 cursor-pointer">✕ 清除结果</button>
+                </div>
+                
+                <div id="searchResults" class="mt-4 space-y-3"></div>
+            </div>
+        </section>
+
+        <!-- ==================== 京火计划 ==================== -->
+        <section id="jinghuo" class="mb-12 content-section">
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-2xl font-bold mb-6 text-blue-600">京火计划（B站 x 京东）</h2>
+
+                <!-- 基本信息 -->
+                <div id="jinghuo-basic" class="mb-8 content-section">
+                    <h3 class="text-xl font-semibold mb-3">基本信息</h3>
+                    <div class="bg-gray-50 rounded p-4">
+                        <p><strong>官方文档：</strong>B站京火计划应用指南（对外版）</p>
+                        <p><strong>更新时间：</strong>2025年9月8日</p>
+                        <p><strong>合作平台：</strong>哔哩哔哩 x 京东</p>
+                        <p><strong>核心定位：</strong>以播放用户作为归因口径的内容种草解决方案</p>
+                    </div>
+                </div>
+
+                <!-- 京火 vs 蓝链带货 -->
+                <div id="jinghuo-compare" class="mb-8 content-section">
+                    <h3 class="text-xl font-semibold mb-3">京火计划 vs 蓝链带货</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full border-collapse">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="border border-gray-300 px-4 py-2 text-left">维度</th>
+                                    <th class="border border-gray-300 px-4 py-2 text-left">京火计划</th>
+                                    <th class="border border-gray-300 px-4 py-2 text-left">蓝链带货</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td class="border border-gray-300 px-4 py-2 font-semibold">目标客户</td><td class="border border-gray-300 px-4 py-2">以品效为目标的客户，用优质商单内容影响用户，实现高效种草</td><td class="border border-gray-300 px-4 py-2">以GMV转化为目标的客户，用内容+投流实现高效转化</td></tr>
+                                <tr><td class="border border-gray-300 px-4 py-2 font-semibold">任务门槛</td><td class="border border-gray-300 px-4 py-2">2万</td><td class="border border-gray-300 px-4 py-2">——</td></tr>
+                                <tr><td class="border border-gray-300 px-4 py-2 font-semibold">结算方式</td><td class="border border-gray-300 px-4 py-2">商单一口价</td><td class="border border-gray-300 px-4 py-2">CPS分佣结算</td></tr>
+                                <tr><td class="border border-gray-300 px-4 py-2 font-semibold">数据源</td><td class="border border-gray-300 px-4 py-2">基于商单视频的播放用户设备识别号做归因</td><td class="border border-gray-300 px-4 py-2">基于京东联盟商品计划做PID归因</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- B站数据维度 -->
+                <div id="jinghuo-bilibili-data" class="mb-8 content-section">
+                    <h3 class="text-xl font-semibold mb-3">B站数据维度</h3>
+                    <ul class="list-disc pl-6 space-y-2">
+                        <li><strong>播放量：</strong>浏览任务组内种草视频的次数，一人一天多次浏览记多次</li>
+                        <li><strong>播放UV：</strong>浏览任务组内种草视频的人数，一人一天多次浏览仅记一次</li>
+                        <li><strong>点赞PV / 收藏PV / 评论PV / 分享PV</strong></li>
+                    </ul>
+                </div>
+
+                <!-- 京东数据维度 -->
+                <div id="jinghuo-jd-data" class="mb-8 content-section">
+                    <h3 class="text-xl font-semibold mb-3">京东数据维度</h3>
+                    <ul class="list-disc pl-6 space-y-2">
+                        <li><strong>搜索浏览UV、商品浏览UV、商品加购UV、商品收藏UV</strong></li>
+                        <li><strong>下单UV、下单GMV、成交UV、成交GMV</strong></li>
+                        <li><strong>新客UV（360天）、新访客UV（6天）</strong></li>
+                    </ul>
+                </div>
+
+                <!-- 重要通知 -->
+                <div id="jinghuo-notice" class="mb-8 content-section">
+                    <h3 class="text-xl font-semibold mb-3 text-red-600">⚠️ 重要通知</h3>
+                    <div class="bg-red-50 border-l-4 border-red-500 p-4">
+                        <p><strong>京火投流下单规范通知：</strong></p>
+                        <p>自2025年9月1日起，未按照京火投流SOP规范创建京火投流账户将无法投放京火稿件。</p>
+                        <p class="mt-2">请各位代理/商家尽快调整修改，按照SOP创建京火账户进行稿件投流。</p>
+                    </div>
+                </div>
+
+                <!-- 知识库链接 -->
+                <div id="jinghuo-resources" class="content-section">
+                    <h3 class="text-xl font-semibold mb-3">知识库资源</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-gray-50 p-4 rounded">
+                            <h4 class="font-semibold mb-2">📌 投前</h4>
+                            <ul class="list-disc pl-6 text-sm space-y-1">
+                                <li><a href="https://docs.qq.com/doc/DWGNmQVlMUVhxSmJ1" target="_blank" class="text-blue-600 hover:underline font-semibold">【京火计划通案】PDF</a></li>
+                                <li><a href="https://docs.qq.com/doc/DWEV3VWRRU3pod0Vz" target="_blank" class="text-blue-600 hover:underline">【京火计划操作手册】</a></li>
+                                <li><a href="https://h5-elive.jd.com/#/C9411120EC4DA9B8BD155A2B977E965C/1" target="_blank" class="text-blue-600 hover:underline">【对外宣讲回放】</a></li>
+                            </ul>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded">
+                            <h4 class="font-semibold mb-2">🎯 投中</h4>
+                            <ul class="list-disc pl-6 text-sm space-y-1">
+                                <li><a href="https://docs.qq.com/doc/DWGNmQVlMUVhxSmJ1" target="_blank" class="text-blue-600 hover:underline font-semibold">【案例库】PDF</a></li>
+                                <li><a href="https://drive.weixin.qq.com/s?k=ANYAEAdoABEpg5PMl7AEsAUAbbABU" target="_blank" class="text-blue-600 hover:underline">服务商入驻操作手册</a></li>
+                                <li><a href="https://drive.weixin.qq.com/s?k=ANYAEAdoABETgdEKPhAEsAUAbbABU" target="_blank" class="text-blue-600 hover:underline">任务权限申请表</a></li>
+                                <li><a href="https://eoz4t8k7fx.feishu.cn/docx/Rv39dI6x2oX9YpxeZw0clis5nby" target="_blank" class="text-blue-600 hover:underline">京火开户详解（B站侧）</a></li>
+                                <li><a href="https://n1smh252dmw.feishu.cn/docx/HuhGdx0AFolua3x82ObcyIm8nob" target="_blank" class="text-blue-600 hover:underline">京火投流SOP</a></li>
+                                <li><a href="https://docs.qq.com/doc/DSEdMUlNncHJUb1Vm" target="_blank" class="text-blue-600 hover:underline">带货起飞宝典2.0</a></li>
+                            </ul>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded">
+                            <h4 class="font-semibold mb-2">📊 投后</h4>
+                            <ul class="list-disc pl-6 text-sm">
+                                <li><a href="https://sxxq7we8cxu.feishu.cn/docx/HSlhdRyuYoU6u6x7tR5csgyXnZd" target="_blank" class="text-blue-600 hover:underline">【结案报告模板】</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 星火计划 ==================== -->
+        <section id="xinghuo" class="mb-12 content-section">
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-2xl font-bold mb-6 text-green-600">星火计划（淘宝种草）</h2>
+
+                <!-- 基本信息 -->
+                <div id="xinghuo-basic" class="mb-8 content-section">
+                    <h3 class="text-xl font-semibold mb-3">基本信息</h3>
+                    <div class="bg-gray-50 rounded p-4">
+                        <p><strong>官方文档：</strong>商家/代理商/服务商注册SOP</p>
+                        <p><strong>所属知识库：</strong>淘宝种草One BP白皮书</p>
+                        <p><strong>合作平台：</strong>淘宝 x 多平台（B站、知乎、小红书、巨量星图）</p>
+                        <p><strong>核心定位：</strong>淘宝联盟种草营销解决方案</p>
+                    </div>
+                </div>
+
+                <!-- 角色与权限 -->
+                <div id="xinghuo-role" class="mb-8 content-section">
+                    <h3 class="text-xl font-semibold mb-3">角色与权限</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full border-collapse">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="border border-gray-300 px-4 py-2 text-left">角色</th>
+                                    <th class="border border-gray-300 px-4 py-2 text-left">发单</th>
+                                    <th class="border border-gray-300 px-4 py-2 text-left">接单</th>
+                                    <th class="border border-gray-300 px-4 py-2 text-left">备注</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td class="border border-gray-300 px-4 py-2 font-semibold">商家（品牌）</td><td class="border border-gray-300 px-4 py-2">✓</td><td class="border border-gray-300 px-4 py-2">需注册服务商</td><td class="border border-gray-300 px-4 py-2">如需自发自接，需同步注册服务商身份</td></tr>
+                                <tr><td class="border border-gray-300 px-4 py-2 font-semibold">代理商</td><td class="border border-gray-300 px-4 py-2">✓</td><td class="border border-gray-300 px-4 py-2">需注册服务商</td><td class="border border-gray-300 px-4 py-2">品牌不可注册代理商身份</td></tr>
+                                <tr><td class="border border-gray-300 px-4 py-2 font-semibold">服务商</td><td class="border border-gray-300 px-4 py-2">✗</td><td class="border border-gray-300 px-4 py-2">✓</td><td class="border border-gray-300 px-4 py-2">--</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 注册流程 -->
+                <div id="xinghuo-register" class="mb-8 content-section">
+                    <h3 class="text-xl font-semibold mb-3">注册流程</h3>
+                    <div class="bg-gray-50 rounded p-4">
+                        <ol class="list-decimal pl-6 space-y-2">
+                            <li>联系客服 → ② 获得注册链接 → ③ 企业淘宝账号登录 → ④ 注册账号 → ⑤ 账号审核 → ⑥ 审核成功/失败重填 → ⑦ 登录账号</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- 账号须知 -->
+                <div id="xinghuo-account" class="mb-8 content-section">
+                    <h3 class="text-xl font-semibold mb-3">账号须知</h3>
+                    <ul class="list-disc pl-6 space-y-2">
+                        <li><strong>商家：</strong>不需要开通淘宝联盟即可注册使用淘宝星河产品后台</li>
+                        <li><strong>服务商：</strong>企业淘宝账号必须是已注册过淘客的账号</li>
+                        <li><strong>代理商：</strong>使用企业淘宝账号</li>
+                    </ul>
+                </div>
+
+                <!-- 钉钉群号 -->
+                <div id="xinghuo-dingtalk" class="content-section">
+                    <h3 class="text-xl font-semibold mb-3">各平台钉钉群号</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-yellow-50 p-3 rounded">
+                            <h4 class="font-semibold text-sm mb-2">🏪 商家群</h4>
+                            <p class="text-xs">B站商家大群：12975006391 | B站商家2群：86240004059</p>
+                            <p class="text-xs mt-1">知乎商家群：25930033957 | 巨量星图：91695000417</p>
+                        </div>
+                        <div class="bg-green-50 p-3 rounded">
+                            <h4 class="font-semibold text-sm mb-2">🔧 服务商群</h4>
+                            <p class="text-xs">B站服务商：84000003353 | 小红书：57135014529</p>
+                            <p class="text-xs mt-1">知乎：36165018742 | 巨量星图：99215042709</p>
+                        </div>
+                    </div>
+                    <div class="bg-yellow-50 border-l-4 border-yellow-500 p-3 mt-4 text-sm">
+                        <p class="text-red-600 font-bold">⚠️ 进群必须备注！不备注不审核通过！</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 帮助中心 ==================== -->
+        <section id="huohuo-help" class="mb-12 content-section">
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-2xl font-bold text-purple-600">📚 B站花火 · X火计划帮助中心</h2>
+                    <a href="https://huahuo.bilibili.com/#/help/detail/?domain=ad-v2&title=X%E7%81%AB%E8%AE%A1%E5%88%92%E4%BA%A7%E5%93%81%E4%BB%8B%E7%BB%8D&id=644" target="_blank" class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors cursor-pointer inline-block">
+                        打开花火帮助中心 →
+                    </a>
+                </div>
+
+                <!-- 一、产品介绍 -->
+                <div id="help-product-intro" class="mb-8 content-section">
+                    <h3 class="text-xl font-semibold mb-3 text-purple-700 border-b pb-2">一、X火计划产品介绍</h3>
+                    <div class="bg-purple-50 rounded p-4 mb-4">
+                        <p><strong>核心定位：</strong>通过<strong>数据归因</strong>把商单内容传播影响力与交易场景转化行为串联，打通「内容种草 → 交易转化」全链路。</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-blue-50 p-3 rounded text-sm">
+                            <strong class="text-blue-800">🛒 电商版</strong>
+                            <p class="mt-1">归因目标：<strong>淘宝/天猫/京东</strong>的店铺浏览、收藏、加购、成交等</p>
+                            <p>适用：已在电商平台开店的电商类商家，无需技术对接</p>
+                        </div>
+                        <div class="bg-green-50 p-3 rounded text-sm">
+                            <strong class="text-green-800">📱 通用版</strong>
+                            <p class="mt-1">归因目标：客户APP内<strong>应用激活、拉新、留存</strong></p>
+                            <p>适用：网服/平台电商类，<strong>需要技术对接能力</strong></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 二、京火完整流程 -->
+                <div id="help-jinghuo-flow" class="mb-8 content-section">
+                    <h3 class="text-xl font-semibold mb-3 text-blue-700 border-b pb-2">二、京火计划 · 完整操作流程</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm border-collapse">
+                            <thead><tr class="bg-blue-100"><th class="border px-3 py-2 text-left">阶段</th><th class="border px-3 py-2 text-left">环节</th><th class="border px-3 py-2 text-left">操作要点</th></tr></thead>
+                            <tbody>
+                                <tr><td class="border px-3 py-2 font-medium">新商入驻</td><td class="border px-3 py-2">入驻前准备</td><td class="border px-3 py-2"><a href="https://jzt.jd.com/" target="_blank" class="text-blue-600 hover:underline">京准通 jzt.jd.com</a> → 填写信息 → 签署协议</td></tr>
+                                <tr><td class="border px-3 py-2 font-medium">服务商入驻</td><td class="border px-3 py-2">开通接任务</td><td class="border px-3 py-2"><a href="https://agency.jd.com" target="_blank" class="text-blue-600 hover:underline">京牌代理官网</a>选【服务商】→ 内容营销 → 审核</td></tr>
+                                <tr><td class="border px-3 py-2 font-medium">代理授权</td><td class="border px-3 py-2">绑定/委托</td><td class="border px-3 py-2"><strong>绑定模式：</strong>代理商全权代理 | <strong>委托模式：</strong>广告主自主充值+开票</td></tr>
+                                <tr><td class="border px-3 py-2 font-medium">发布任务</td><td class="border px-3 py-2">新建种草任务</td><td class="border px-3 py-2">京准通 → 内容广告 → 商家任务 → 站外任务 → 种草任务 → 新建（门槛 ≥ 2万）</td></tr>
+                                <tr><td class="border px-3 py-2 font-medium">花火下单</td><td class="border px-3 py-2">创建商单</td><td class="border px-3 py-2">选UP主 → 关联站外ID（xx公司-商单-花火平台-京火）→ 发布（数据合作：京东联盟）</td></tr>
+                                <tr><td class="border px-3 py-2 font-medium">转化效果</td><td class="border px-3 py-2">数据查看</td><td class="border px-3 py-2"><strong>花火：</strong>投后报告→效果转化(T+1晚7点) | <strong>京准通：</strong>站外营销→效果数据</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 三、星火完整流程 -->
+                <div id="help-xinghuo-flow" class="mb-8 content-section">
+                    <h3 class="text-xl font-semibold mb-3 text-green-700 border-b pb-2">三、星火计划（淘宝种草）· 完整操作流程</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm border-collapse">
+                            <thead><tr class="bg-green-100"><th class="border px-3 py-2 text-left">阶段</th><th class="border px-3 py-2 text-left">环节</th><th class="border px-3 py-2 text-left">操作要点</th></tr></thead>
+                            <tbody>
+                                <tr><td class="border px-3 py-2 font-medium">入驻准备</td><td class="border px-3 py-2">前置条件</td><td class="border px-3 py-2">商家不需要淘宝联盟 | 服务商需淘客账号</td></tr>
+                                <tr><td class="border px-3 py-2 font-medium">平台注册</td><td class="border px-3 py-2">星河平台注册</td><td class="border px-3 py-2">⚠️ 名称需与资质公司名一致 | 需填写合作媒体ID及主体名称</td></tr>
+                                <tr><td class="border px-3 py-2 font-medium">充值</td><td class="border px-3 py-2">支付宝充值</td><td class="border px-3 py-2">财务管理 → 账户明细 → 充值（仅支持支付宝）</td></tr>
+                                <tr><td class="border px-3 py-2 font-medium">发布任务</td><td class="border px-3 py-2">授权+发布</td><td class="border px-3 py-2">自发自接：录入memberID→切换服务商身份；自发他接：服务商确认。必填商品ID+投放时间≤90天</td></tr>
+                                <tr><td class="border px-3 py-2 font-medium">花火下单</td><td class="border px-3 py-2">创建商单</td><td class="border px-3 py-2">关联站外ID（xx公司-商单-花火平台-淘联），数据合作模块选择：星火</td></tr>
+                                <tr><td class="border px-3 py-2 font-medium">确认结算</td><td class="border px-3 py-2">达人确认&改价</td><td class="border px-3 py-2">订单管理→达人列表→确认生效 | 改价后预算自动调整 | T+1打款给B站</td></tr>
+                                <tr><td class="border px-3 py-2 font-medium">转化效果</td><td class="border px-3 py-2">数据查看</td><td class="border px-3 py-2"><strong>花火：</strong>T+1 23:00 更新 | <strong>星河：</strong>数据洞察-项目数据管理</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 四、Q&A -->
+                <div id="help-qa" class="mb-8 content-section">
+                    <h3 class="text-xl font-semibold mb-4 text-orange-700 border-b pb-2">四、Q&A 常见问题汇总（完整版 · 共30问）</h3>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- 星火计划 Q&A (Q1~Q15) -->
+                        <div id="help-xinghuo-qa" class="mb-6 lg:mb-0">
+                            <h4 class="font-semibold text-green-700 mb-3 flex items-center gap-2">
+                                <span class="text-lg">🌟</span> 星火计划 Q&A
+                                <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">15问</span>
+                            </h4>
+                            <div class="space-y-3">
+                                <details class="bg-white border border-green-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-green-50 px-4 py-3 cursor-pointer font-medium text-green-900 hover:bg-green-100 transition-colors select-none">Q1：任务ID和密钥从哪获取？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-green-100">淘宝星河平台入驻并开通种草自选权限 → 服务商身份接单 → 订单管理-订单ID处获取任务ID → 订单详情获取密钥。<br>⚠️ 服务商主体需与花火发布商单主体一致。</div>
+                                </details>
+                                <details class="bg-white border border-green-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-green-50 px-4 py-3 cursor-pointer font-medium text-green-900 hover:bg-green-100 transition-colors select-none">Q2：花火平台如何操作关联星火任务？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-green-100">申请独立星火账户（命名：xx公司-商单-花火平台-淘联），在【数据合作】模块选择合作平台为"星火"，填写任务ID和密钥。无此板块可联系渠道经理申请开白。</div>
+                                </details>
+                                <details class="bg-white border border-green-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-green-50 px-4 py-3 cursor-pointer font-medium text-green-900 hover:bg-green-100 transition-colors select-none">Q3：星火计划的发票如何开具？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-green-100">同普通商单。【我的花火】→【财务管理】→【申请开票】，结算单类型选<strong>【星任务结算单】</strong>，核对明细后打印盖章上传，填写发票抬头后提交审核。</div>
+                                </details>
+                                <details class="bg-white border border-green-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-green-50 px-4 py-3 cursor-pointer font-medium text-green-900 hover:bg-green-100 transition-colors select-none">Q4：星河平台订单与花火平台任务的对应关系？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-green-100">星河平台的<strong>订单列表</strong>对应花火平台的<strong>任务</strong>（通过任务ID关联），星河的<strong>达人列表</strong>对应花火该任务下的<strong>订单</strong>。</div>
+                                </details>
+                                <details class="bg-white border border-green-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-green-50 px-4 py-3 cursor-pointer font-medium text-green-900 hover:bg-green-100 transition-colors select-none">Q5：种草自选创建是否有费用门槛？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-green-100">有。种草自选订单费用需 <strong>≥ 2万元</strong>，否则无法发布。</div>
+                                </details>
+                                <details class="bg-white border border-green-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-green-50 px-4 py-3 cursor-pointer font-medium text-green-900 hover:bg-green-100 transition-colors select-none">Q6：星河平台入驻时三种身份如何选择？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-green-100"><strong>品牌：</strong>广告主，拥有充值、发单、授权权限<br><strong>代理商：</strong>获得品牌授权后代发单<br><strong>服务商：</strong>拥有接单权限<br><br>商家花火自投需满足「品牌+服务商」；代理商代投需满足「代理商+服务商」</div>
+                                </details>
+                                <details class="bg-white border border-green-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-green-50 px-4 py-3 cursor-pointer font-medium text-green-900 hover:bg-green-100 transition-colors select-none">Q7：前后链路数据分别是什么？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-green-100"><strong>前链路（花火）：</strong>播放/互动/CPM/CPE 等<br><strong>后链路（淘宝/天猫）：</strong>搜索/进店/收藏/加购/关注/新访客/新客/成交等</div>
+                                </details>
+                                <details class="bg-white border border-green-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-green-50 px-4 py-3 cursor-pointer font-medium text-green-900 hover:bg-green-100 transition-colors select-none">Q8：海外店铺品牌可以通过星火计划推广吗？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-green-100"><strong>可以注册品牌，但需通过代理商发单。</strong>海外商家只能注册为【品牌】身份，不能注册为【代理商】或【服务商】，投放操作仍需代理商代为操作。</div>
+                                </details>
+                                <details class="bg-white border border-green-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-green-50 px-4 py-3 cursor-pointer font-medium text-green-900 hover:bg-green-100 transition-colors select-none">Q9：星河接任务主体和花火下单方可以是不同主体吗？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-green-100"><strong>不可以。</strong>种草自选接任务主体必须跟花火发布任务主体保持一致，否则无法下单。</div>
+                                </details>
+                                <details class="bg-white border border-green-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-green-50 px-4 py-3 cursor-pointer font-medium text-green-900 hover:bg-green-100 transition-colors select-none">Q10：稿件上线后何时可以看到后链路数据？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-green-100">T+1 可在星河查看<strong>任务组维度</strong>数据；T+1 23:00 可在花火<strong>投后报告-效果转化</strong>查看<strong>单稿件</strong>数据。</div>
+                                </details>
+                                <details class="bg-white border border-green-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-green-50 px-4 py-3 cursor-pointer font-medium text-green-900 hover:bg-green-100 transition-colors select-none">Q11：星火计划的账户如何进行充值？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-green-100">花火平台无需充值，下单时关联种草自选订单ID，占用其预算。需在<strong>星河平台发布任务前</strong>先充值：<br>路径：【财务管理】→【账户明细】→【立即充值】→ 填写金额确认（仅支持支付宝）</div>
+                                </details>
+                                <details class="bg-white border border-green-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-green-50 px-4 py-3 cursor-pointer font-medium text-green-900 hover:bg-green-100 transition-colors select-none">Q12：「花火+」权益如何收费？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-green-100">星火计划订单目前「花火+」<strong>免费使用</strong>，无需额外付费。</div>
+                                </details>
+                                <details class="bg-white border border-green-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-green-50 px-4 py-3 cursor-pointer font-medium text-green-900 hover:bg-green-100 transition-colors select-none">Q13：评论区商品链接的蓝色标题如何修改？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-green-100">① 悬赏带货配置的 → 悬赏后台修改<br>② 三连后台创建的 → 三连后台-商品管理中自助修改</div>
+                                </details>
+                                <details class="bg-white border border-green-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-green-50 px-4 py-3 cursor-pointer font-medium text-green-900 hover:bg-green-100 transition-colors select-none">Q14：评论区如何配置挂载多个商品链接？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-green-100">① UP主自助手动添加<br>② 代理商/品牌主在订单详情页<strong>转化组件板块</strong>中添加</div>
+                                </details>
+                                <details class="bg-white border border-green-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-green-50 px-4 py-3 cursor-pointer font-medium text-green-900 hover:bg-green-100 transition-colors select-none">Q15：稿件发布后能否补绑任务ID？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-green-100 bg-red-50"><strong>❌ 不支持补绑定！</strong>必须在电商平台发布种草任务拿到ID和密钥后，在花火发布商单任务时关联。未关联则无法数据回传！请务必<strong>先拿ID再发布稿件</strong>。</div>
+                                </details>
+                            </div>
+                        </div>
+                    
+                        <!-- 京火计划 Q&A (Q1~Q15) -->
+                        <div id="help-jinghuo-qa">
+                            <h4 class="font-semibold text-blue-700 mb-3 flex items-center gap-2">
+                                <span class="text-lg">🔥</span> 京火计划 Q&A
+                                <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">15问</span>
+                            </h4>
+                            <div class="space-y-3">
+                                <details class="bg-white border border-blue-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-blue-50 px-4 py-3 cursor-pointer font-medium text-blue-900 hover:bg-blue-100 transition-colors select-none">Q1：任务ID和密钥从哪获取？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-blue-100">完成京准通+京东联盟入驻 → 京准通新建种草任务并签署协议 → 品牌或代理商完成接单 → 任务详情获取ID和密钥。⚠️ 接任务主体需与花火发布主体一致。</div>
+                                </details>
+                                <details class="bg-white border border-blue-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-blue-50 px-4 py-3 cursor-pointer font-medium text-blue-900 hover:bg-blue-100 transition-colors select-none">Q2：花火平台如何操作关联京火任务？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-blue-100">申请独立京火账户（命名：xx公司-商单-花火平台-京火），在【数据合作】模块选择"京东联盟"，填入任务ID和密钥。无此板块可联系渠道经理申请开白。</div>
+                                </details>
+                                <details class="bg-white border border-blue-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-blue-50 px-4 py-3 cursor-pointer font-medium text-blue-900 hover:bg-blue-100 transition-colors select-none">Q3：京火计划的发票如何开具？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-blue-100">同普通商单。【我的花火】→【财务管理】→【申请开票】，结算单类型选<strong>【花火结算单】</strong>，核对明细后打印盖章上传，填写发票抬头后提交审核。</div>
+                                </details>
+                                <details class="bg-white border border-blue-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-blue-50 px-4 py-3 cursor-pointer font-medium text-blue-900 hover:bg-blue-100 transition-colors select-none">Q4：京东POP商家是否支持京火计划？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-blue-100"><strong>支持。</strong>可通过商家发布任务、服务商接收任务的模式进行合作。商家需先在京准通完成入驻。</div>
+                                </details>
+                                <details class="bg-white border border-blue-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-blue-50 px-4 py-3 cursor-pointer font-medium text-blue-900 hover:bg-blue-100 transition-colors select-none">Q5：京火任务是否有费用门槛？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-blue-100">有。<strong>单任务费用 ≥ 2万元</strong>，否则无法发布。</div>
+                                </details>
+                                <details class="bg-white border border-blue-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-blue-50 px-4 py-3 cursor-pointer font-medium text-blue-900 hover:bg-blue-100 transition-colors select-none">Q6：服务商报名了但后台没有种草任务是为什么？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-blue-100">当品牌发布的是<strong>公开任务</strong>时，服务商报名后，<strong>品牌方需点击【接受】</strong>才能达成合作，之后才能看到种草任务并获取任务ID和密钥。</div>
+                                </details>
+                                <details class="bg-white border border-blue-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-blue-50 px-4 py-3 cursor-pointer font-medium text-blue-900 hover:bg-blue-100 transition-colors select-none">Q7：自发自接 vs 自发他接 有什么区别？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-blue-100"><strong>自发自接：</strong>自己发自己接 → 无需接单步骤 → 自动生成任务组ID及密钥<br><strong>自发他接：</strong>品牌发、代理商接 → 代理商报名 → 品牌确认后才达成合作</div>
+                                </details>
+                                <details class="bg-white border border-blue-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-blue-50 px-4 py-3 cursor-pointer font-medium text-blue-900 hover:bg-blue-100 transition-colors select-none">Q8：一个任务的有效期是多少天？到期可以延期吗？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-blue-100">任务有效期最长 <strong>90天</strong>，到期后<strong>不可以延期</strong>。</div>
+                                </details>
+                                <details class="bg-white border border-blue-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-blue-50 px-4 py-3 cursor-pointer font-medium text-blue-900 hover:bg-blue-100 transition-colors select-none">Q9：任务时间是否可以修改？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-blue-100">商家发-服务商接模式：<strong>被接单前可更改，接单后不可改</strong><br>自发自接模式：已发完的任务不可更改，如需更改可重新发任务。</div>
+                                </details>
+                                <details class="bg-white border border-blue-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-blue-50 px-4 py-3 cursor-pointer font-medium text-blue-900 hover:bg-blue-100 transition-colors select-none">Q10：首次发布任务时没签署协议，在哪里签署？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-blue-100"><strong>商家：</strong>京准通 → 内容广告 → 商家任务 → 站外任务 → 新建种草任务 → 弹出协议点击同意<br><strong>服务商：</strong>登录京东联盟 → 我的推广 → 京红任务 → 协议签署</div>
+                                </details>
+                                <details class="bg-white border border-blue-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-blue-50 px-4 py-3 cursor-pointer font-medium text-blue-900 hover:bg-blue-100 transition-colors select-none">Q11：京火计划的账户如何进行充值？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-blue-100">京火账户充值流程同普通账户一致。参考：<strong>代理商充值 / 品牌主充值</strong></div>
+                                </details>
+                                <details class="bg-white border border-blue-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-blue-50 px-4 py-3 cursor-pointer font-medium text-blue-900 hover:bg-blue-100 transition-colors select-none">Q12：「花火+」权益如何收费？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-blue-100">若品牌已享受花火政策 → 按<strong>2%</strong>收费<br>若品牌未申请花火政策 → 按<strong>5%</strong>收费<br>具体政策申请请联系对接销管沟通。</div>
+                                </details>
+                                <details class="bg-white border border-blue-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-blue-50 px-4 py-3 cursor-pointer font-medium text-blue-900 hover:bg-blue-100 transition-colors select-none">Q13：评论区商品链接的蓝色标题如何修改？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-blue-100">① 悬赏带货配置的 → 悬赏后台修改商品名<br>② 三连后台配置的 → 三连后台-商品管理中自助修改</div>
+                                </details>
+                                <details class="bg-white border border-blue-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-blue-50 px-4 py-3 cursor-pointer font-medium text-blue-900 hover:bg-blue-100 transition-colors select-none">Q14：评论区如何配置挂载多个商品链接？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-blue-100">① UP主自助手动添加<br>② 代理商/品牌主在订单详情页<strong>转化组件板块</strong>中添加</div>
+                                </details>
+                                <details class="bg-white border border-blue-200 rounded-lg overflow-hidden">
+                                    <summary class="bg-blue-50 px-4 py-3 cursor-pointer font-medium text-blue-900 hover:bg-blue-100 transition-colors select-none">Q15：稿件发布后能否补绑任务ID？</summary>
+                                    <div class="px-4 py-3 text-sm text-gray-700 border-t border-blue-100 bg-red-50"><strong>❌ 不支持补绑定！</strong>必须在电商平台发布种草任务拿到ID和密钥后，在花火发布商单任务时关联。未关联则无法数据回传！请务必<strong>先拿ID再发布稿件</strong>。</div>
+                                </details>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 五、更多文档链接 -->
+                <div id="help-more-docs" class="mb-6 content-section">
+                    <h3 class="text-xl font-semibold mb-3 text-gray-700 border-b pb-2">五、更多帮助文档</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <a href="https://huahuo.bilibili.com/#/help/detail/?domain=ad-v2&title=X%E7%81%AB%E8%AE%A1%E5%88%92%E6%8A%95%E5%90%8E%E6%8A%A5%E5%91%8A&id=649" target="_blank" class="block bg-gray-50 p-3 rounded hover:bg-blue-50 transition-colors">
+                            <span class="font-medium text-sm">📊 X火计划投后报告</span>
+                            <p class="text-xs text-gray-500 mt-1">效果转化数据解读</p>
+                        </a>
+                        <a href="https://huahuo.bilibili.com/#/help/detail/?domain=ad-v2&title=X%E7%81%AB%E4%BB%BB%E5%8A%A1%E8%B5%84%E4%BA%A7%E7%AE%A1%E7%90%86&id=650" target="_blank" class="block bg-gray-50 p-3 rounded hover:bg-blue-50 transition-colors">
+                            <span class="font-medium text-sm">💼 X火任务资产管理</span>
+                            <p class="text-xs text-gray-500 mt-1">任务资产操作指引</p>
+                        </a>
+                        <a href="https://huahuo.bilibili.com/#/help/detail/?domain=ad-v2&title=X%E7%81%AB%E6%A6%9C%E5%8D%95&id=651" target="_blank" class="block bg-gray-50 p-3 rounded hover:bg-blue-50 transition-colors">
+                            <span class="font-medium text-sm">🏆 X火榜单</span>
+                            <p class="text-xs text-gray-500 mt-1">榜单规则说明</p>
+                        </a>
+                        <a href="https://huahuo.bilibili.com/#/" target="_blank" class="block bg-gray-50 p-3 rounded hover:bg-blue-50 transition-colors">
+                            <span class="font-medium text-sm">🏠 花火帮助首页</span>
+                            <p class="text-xs text-gray-500 mt-1">全部帮助目录索引</p>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 对比总结 -->
+        <section id="compare-summary" class="mb-12 content-section">
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-2xl font-bold mb-6">两个计划对比总结</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse">
+                        <thead><tr class="bg-gray-100"><th class="border border-gray-300 px-4 py-2 text-left">对比项</th><th class="border border-gray-300 px-4 py-2 text-left">京火计划</th><th class="border border-gray-300 px-4 py-2 text-left">星火计划</th></tr></thead>
+                        <tbody>
+                            <tr><td class="border px-4 py-2 font-semibold">平台</td><td class="border px-4 py-2">B站 x 京东</td><td class="border px-4 py-2">淘宝 x 多平台</td></tr>
+                            <tr><td class="border px-4 py-2 font-semibold">核心</td><td class="border px-4 py-2">内容种草+品效合一</td><td class="border px-4 py-2">种草+转化</td></tr>
+                            <tr><td class="border px-4 py-2 font-semibold">归因</td><td class="border px-4 py-2">播放用户设备识别</td><td class="border px-4 py-2">淘宝联盟体系</td></tr>
+                            <tr><td class="border px-4 py-2 font-semibold">门槛</td><td class="border px-4 py-2">单任务≥2万</td><td class="border px-4 py-2">单任务≥2万</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 扩展通道 -->
+        <section id="extension" class="mb-12 content-section">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h2 class="text-xl font-bold mb-3">🔗 扩展通道</h2>
+                <p class="text-sm text-gray-700 mb-3">本页面可随时扩展，用于添加更多营销计划或查询内容。</p>
+                <p class="text-xs text-gray-500">所有内容保存在本地HTML文件中，支持离线访问和查询。</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-gray-100 border-t">
+        <div class="max-w-6xl mx-auto px-4 py-6 text-center text-gray-600 text-sm">
+            <p>京火计划 & 星火计划 - 知识查询系统</p>
+            <p>最后更新：2026年5月5日 | 智能搜索 + 快速定位功能</p>
+        </div>
+    </footer>
+
+    <!-- ========== 搜索功能JavaScript（增强版：带锚点定位 + 高亮）========== -->
+    <script>
+    (function() {
+        // 所有可搜索内容，每条都绑定了对应的页面锚点ID
+        const allContent = [
+            // ===== 京火计划 =====
+            { title: "京火计划总览", desc: "B站×京东内容种草解决方案", keywords: "京火 B站 京东 内容种草 品效合一 播放 归因 口径 解决方案", category: "京火计划", targetId: "jinghuo", icon: "🔥" },
+            { title: "京火 vs 蓝链对比", desc: "京火与蓝链带货的区别对照表", keywords: "京火 蓝链 带货 区别 对比 目标客户 任务门槛 2万 商单一口价 CPS分佣 数据源 PID", category: "京火计划", targetId: "jinghuo-compare", icon: "⚖️" },
+            { title: "B站数据指标", desc: "播放量、播放UV、互动PV等B站侧数据", keywords: "播放量 播放UV 点赞PV 收藏PV 评论PV 分享PV B站数据 维度 互动", category: "京火计划", targetId: "jinghuo-bilibili-data", icon: "📊" },
+            { title: "京东数据指标", desc: "搜索浏览、加购、下单、成交等京东侧数据", keywords: "搜索浏览UV 商品浏览UV 加购UV 收藏UV 下单UV 下单GMV 成交UV 成交GMV 新客UV 新访客UV 京东数据 维度", category: "京火计划", targetId: "jinghuo-jd-data", icon: "📈" },
+            { title: "京火重要通知", desc: "投流SOP规范通知（2025.9.1起执行）", keywords: "投流 SOP 规范 通知 9月1日 账户 创建 稿件投放 无法投放 重要", category: "京火计划", targetId: "jinghuo-notice", icon: "⚠️" },
+            { title: "京火知识库资源", desc: "投前/投中/投后的完整资源链接集合", keywords: "通案 操作手册 宣讲回放 案例库 达人池 开户 下单 投流指导 结案报告 投前 投中 投后 资源 PDF", category: "京火计划", targetId: "jinghuo-resources", icon: "📚" },
+
+            // ===== 星火计划 =====
+            { title: "星火计划总览", desc: "淘宝种草One BP白皮书", keywords: "星火 淘宝 种草 One BP 白皮书 阿里 淘宝联盟 多平台", category: "星火计划", targetId: "xinghuo", icon: "🌟" },
+            { title: "角色与权限表", desc: "商家/代理商/服务商的发单接单权限", keywords: "角色 权限 商家 代理商 服务商 发单 接单 注册 淘宝账号 自发自接", category: "星火计划", targetId: "xinghuo-role", icon: "👥" },
+            { title: "注册流程步骤", desc: "联系客服→获得链接→登录→注册→审核→登录", keywords: "注册 流程 客服 链接 登录 审核 账号 企业淘宝 步骤 SOP", category: "星火计划", targetId: "xinghuo-register", icon: "📝" },
+            { title: "账号须知", desc: "商家/服务商/代理商的账号要求说明", keywords: "账号 须知 商家 淘宝联盟 服务商 淘客 代理商 企业账号 要求", category: "星火计划", targetId: "xinghuo-account", icon: "🔐" },
+            { title: "各平台钉钉群号", desc: "B站/知乎/小红书/巨量星图商家群和服务商群", keywords: "钉钉群 B站 知乎 小红书 巨量星图 商家群 服务商群 群号 进群 备注", category: "星火计划", targetId: "xinghuo-dingtalk", icon: "💬" },
+
+            // ===== 帮助中心 =====
+            { title: "X火产品介绍", desc: "电商版（淘宝/天猫/京东）+ 通用版（APP拉新）", keywords: "产品介绍 电商版 通用版 数据归因 内容种草 交易转化 全链路 自助开户 适用客户 淘宝 天猫 京东 APP 拉新 留存", category: "帮助中心", targetId: "help-product-intro", icon: "🎯" },
+            { title: "京火完整操作流程", desc: "从新商入驻到转化效果查看的全流程表格", keywords: "京火 京东 流程 入驻 京准通 服务商 接任务 代理授权 绑定模式 委托模式 发布任务 自发自接 自发他接 花火下单 转化 效果 操作 SOP", category: "帮助中心", targetId: "help-jinghuo-flow", icon: "🔄" },
+            { title: "星火完整操作流程", desc: "从入驻到结算的全流程（含自发自接/自发他接详解）", keywords: "星火 淘宝 流程 入驻 星河平台 充值 支付宝 发布任务 种草自选 自发自接 自发他接 花火下单 达人确认 改价 结算 任务ID 密钥 操作 SOP", category: "帮助中心", targetId: "help-xinghuo-flow", icon: "🔄" },
+            { title: "星火Q&A常见问题", desc: "星火计划完整15问：任务ID/密钥/开票/门槛/前后链路/海外店铺/主体一致性/充值/花火+/商品链接/补绑定等", keywords: "星火 问答 Q&A 任务ID 密钥 开票 入驻身份 门槛 前链路 后链路 海外店铺 主体一致 充值 花火+ 免费使用 T+1 商品链接 多个商品 补绑定 不支持", category: "帮助中心", targetId: "help-xinghuo-qa", icon: "❓" },
+            { title: "京火Q&A常见问题", desc: "京火计划完整15问：任务ID/密钥/开票/POP支持/门槛/报名接受/自发自接/有效期/时间修改/协议签署/花火+收费/商品链接/补绑定等", keywords: "京火 问答 Q&A 任务ID 密钥 开票 京东POP 门槛 报名 接受 自发自接 自发他接 有效期 90天 时间修改 协议签署 充值 花火+ 2% 5% 补绑定 不支持", category: "帮助中心", targetId: "help-jinghuo-qa", icon: "❓" },
+            { title: "更多帮助文档", desc: "投后报告/任务资产/榜单等子页面链接", keywords: "花火 帮助中心 帮助文档 投后报告 任务资产 榜单 产品介绍 更多 子页面", category: "帮助中心", targetId: "help-more-docs", icon: "📄" },
+
+            // ===== 对比 & 其他 =====
+            { title: "京火vs星火对比总结", desc: "两个计划在平台/核心/归因/门槛上的对比", keywords: "对比 京火 星火 区别 平台 核心 适用 归因 总结 对照 差异", category: "对比", targetId: "compare-summary", icon: "📋" },
+            { title: "扩展通道", desc: "页面扩展入口说明", keywords: "扩展 通道 扩展性 添加 更多 计划 信息 本地 离线", category: "其他", targetId: "extension", icon: "🔗" },
+        ];
+
+        // 显示Toast提示
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.querySelector('span').textContent = msg;
+            toast.style.opacity = '1';
+            setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+        }
+
+        // 移除之前的高亮
+        function clearHighlights() {
+            document.querySelectorAll('.highlight-active').forEach(el => {
+                el.classList.remove('highlight-active');
+            });
+        }
+
+        // 定位到目标元素并高亮 — 挂载到window供onclick调用
+        window.scrollToTarget = function(targetId) {
+            var target = document.getElementById(targetId);
+            if (!target) {
+                console.error('[定位失败] 找不到ID: ' + targetId);
+                alert('⚠️ 无法定位到目标内容，请检查页面结构。目标ID: ' + targetId);
+                return;
+            }
+
+            console.log('[正在定位] ID:', targetId, '→', (target.querySelector('h3') || target.querySelector('h2') || {}).textContent);
+
+            // 先移除旧高亮
+            clearHighlights();
+            
+            // 添加新高亮
+            target.classList.add('highlight-active');
+            
+            // 强制滚动到目标位置
+            setTimeout(function() {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
+                // 二次保障：如果 smooth 没生效，强制设置 scrollTop
+                setTimeout(function() {
+                    var rect = target.getBoundingClientRect();
+                    if (rect.top > 100) {
+                        window.scrollBy({ top: -80, behavior: 'instant' });
+                    }
+                }, 300);
+            }, 50);
+            
+            // 显示提示
+            showToast('✅ 已定位到：' + (target.querySelector('h3') ? target.querySelector('h3').textContent.trim() : 
+                       target.querySelector('h2') ? target.querySelector('h2').textContent.trim() : targetId));
+            
+            // 3秒后移除高亮样式
+            setTimeout(clearHighlights, 3000);
+            
+            return true;
+        }
+
+        // 高亮匹配的关键词文本
+        function highlightText(text, searchTerm) {
+            if (!searchTerm) return text;
+            try {
+                const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const regex = new RegExp('(' + escaped + ')', 'gi');
+                return text.replace(regex, '<mark>$1</mark>');
+            } catch(e) { return text; }
+        }
+
+        // 执行搜索
+        window.performSearch = function() {
+            const input = document.getElementById('searchInput');
+            const resultsDiv = document.getElementById('searchResults');
+            const statsDiv = document.getElementById('searchStats');
+            const term = input.value.trim();
+
+            if (!term) {
+                resultsDiv.innerHTML = '';
+                statsDiv.classList.add('hidden');
+                return;
+            }
+
+            const lowerTerm = term.toLowerCase();
+            
+            // 模糊搜索：匹配标题、描述、关键词、分类中的任意一项
+            const results = allContent.filter(item => {
+                return item.title.toLowerCase().includes(lowerTerm) ||
+                       (item.desc && item.desc.toLowerCase().includes(lowerTerm)) ||
+                       item.keywords.toLowerCase().includes(lowerTerm) ||
+                       item.category.toLowerCase().includes(lowerTerm);
+            });
+
+            // 按匹配度排序（标题完全匹配 > 描述包含 > 关键词包含）
+            results.sort((a, b) => {
+                const aTitleExact = a.title.toLowerCase() === lowerTerm ? 0 : 1;
+                const bTitleExact = b.title.toLowerCase() === lowerTerm ? 0 : 1;
+                if (aTitleExact !== bTitleExact) return aTitleExact - bTitleExact;
+                const aTitleStart = a.title.toLowerCase().startsWith(lowerTerm) ? 0 : 1;
+                const bTitleStart = b.title.toLowerCase().startsWith(lowerTerm) ? 0 : 1;
+                return aTitleStart - bTitleStart;
+            });
+
+            statsDiv.classList.remove('hidden');
+            statsDiv.querySelector('span').textContent = `找到 ${results.length} 条结果`;
+
+            if (results.length === 0) {
+                resultsDiv.innerHTML = `
+                    <div class="p-6 bg-yellow-50 rounded-lg text-center border border-yellow-200">
+                        <p class="text-yellow-800 font-medium text-lg mb-1">😕 未找到匹配结果</p>
+                        <p class="text-sm text-yellow-600">试试其他关键词：京火、星火、投流、开票、门槛、流程、Q&A...</p>
+                    </div>`;
+                return;
+            }
+
+            let html = '<div class="space-y-2" id="searchResultsList">';
+            results.forEach((result, idx) => {
+                html += `
+                    <div class="search-result-item p-4 bg-gradient-to-r from-blue-50 to-white rounded-lg border border-blue-200 hover:border-blue-400"
+                         data-target="${result.targetId}"
+                         role="button"
+                         tabindex="0"
+                         style="-webkit-tap-highlight-color: transparent;">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <span class="text-lg flex-shrink-0">${result.icon}</span>
+                                <div class="min-w-0">
+                                    <h4 class="font-semibold text-blue-900 truncate">${highlightText(result.title, term)}</h4>
+                                    <p class="text-sm text-gray-500 mt-0.5">${highlightText(result.desc || '', term)}</p>
+                                </div>
+                            </div>
+                            <div class="flex-shrink-0 flex items-center gap-2">
+                                <span class="text-xs px-2 py-0.5 rounded-full ${
+                                    result.category === '京火计划' ? 'bg-blue-100 text-blue-700' :
+                                    result.category === '星火计划' ? 'bg-green-100 text-green-700' :
+                                    result.category === '帮助中心' ? 'bg-purple-100 text-purple-700' :
+                                    'bg-gray-100 text-gray-700'
+                                }">${result.category}</span>
+                                <svg class="w-5 h-5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2 ml-8">👆 点击此条 → 自动滚动到对应内容</p>
+                    </div>`;
+            });
+            html += '</div>';
+
+            resultsDiv.innerHTML = html;
+
+            // 用事件委托统一绑定点击事件（比 onclick 字符串更可靠）
+            document.getElementById('searchResultsList').addEventListener('click', function(e) {
+                var item = e.target.closest('.search-result-item');
+                if (item) {
+                    var targetId = item.getAttribute('data-target');
+                    console.log('[点击搜索结果] 目标ID:', targetId);
+                    window.scrollToTarget(targetId);
+                }
+            });
+            
+            // 键盘回车支持
+            document.getElementById('searchResultsList').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    var item = e.target.closest('.search-result-item');
+                    if (item) {
+                        window.scrollToTarget(item.getAttribute('data-target'));
+                    }
+                }
+            });
+        };
+
+        // 清除搜索
+        window.clearSearch = function() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchResults').innerHTML = '';
+            document.getElementById('searchStats').classList.add('hidden');
+            clearHighlights();
+        };
+
+        // 键盘快捷键：Ctrl+/ 或 Cmd+/ 聚焦搜索框
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+                e.preventDefault();
+                document.getElementById('searchInput').focus();
+            }
+        });
+
+        // 页面加载时聚焦搜索框（可选）
+        // document.getElementById('searchInput').focus();
+
+    })();
+    </script>
+
+</body>
+</html>
